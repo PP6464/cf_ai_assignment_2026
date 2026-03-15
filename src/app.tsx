@@ -3,6 +3,49 @@ import { MusicNoteIcon } from '@phosphor-icons/react';
 import { Loader } from '@cloudflare/kumo';
 import { useAgent } from 'agents/react';
 import { useAgentChat } from '@cloudflare/ai-chat/react';
+import type { ToolUIPart, UIMessage } from 'ai';
+import { mockMessages } from '../mock-data';
+
+function Message(message: UIMessage) {
+	if (message.role === "system") return (<></>);
+
+	const isStreaming = message.parts.some((p) => {
+		if ("state" in p) {
+			return p.state?.includes("streaming");
+		}
+		return false;
+	});
+
+	const songs = message
+		.parts
+		.filter((e) => e.type === "tool-generatePlaylist")
+		.flatMap((e) => (e as ToolUIPart).output as SongInfo);
+
+	return (
+		<div className={`message-${message.role}`}>
+			{ isStreaming ? <p>...</p> : <>
+				<p>{
+					message
+						.parts
+						.filter((e) => e.type === 'text')
+						.map((e) => e.text).join('')
+				}</p>
+				{
+					songs
+						.map(({ link, artists, title }) =>
+							<a href={link} key={link}>
+								<div className={"song-card"}>
+									<h1>{ title }</h1>
+									<p>{artists.join(", ")}</p>
+								</div>
+							</a>
+						)
+				}
+			</>
+			}
+		</div>
+	)
+}
 
 function Chat() {
 	const [prompt, setPrompt] = useState<string>('');
@@ -53,10 +96,11 @@ function Chat() {
 
 	return (
 		<div
-			className={ 'flex flex-col items-center justify-between h-lvh' }
-		>
+			className={ 'flex flex-col items-center justify-between h-lvh' }>
 			<div id={ 'chat-outer' }>
-				<p style={ { height: '1000px' } }>Gobbledygook</p>
+				{
+					mockMessages.map((msg) => Message(msg))
+				}
 				<div ref={ messagesEndRef }></div>
 			</div>
 			<form
@@ -65,12 +109,10 @@ function Chat() {
 				onSubmit={ (e) => {
 					e.preventDefault();
 					setPrompt('');
-				} }
-			>
+				} }>
 				<div
 					className="flex align-center items-center justify-center"
-					style={ { marginBottom: '20px' } }
-				>
+					style={ { marginBottom: '20px' } }>
 					<input
 						id={ 'prompt-input' }
 						value={ prompt }

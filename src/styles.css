@@ -48,3 +48,40 @@ body,
 #chat-outer::-webkit-scrollbar {
   display: none;
 }
+
+.message-user {
+  justify-self: end;
+  background: var(--color-gray-800);
+  padding: 10px;
+  border-radius: 10px;
+  max-width: max(50%, 400px);
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.message-assistant {
+  justify-self: start;
+  background: hotpink;
+  padding: 10px;
+  border-radius: 10px;
+  max-width: max(50%, 400px);
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.song-card {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  background: deeppink;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.song-card h1 {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.song-card p {
+  font-size: 13px;
+}
