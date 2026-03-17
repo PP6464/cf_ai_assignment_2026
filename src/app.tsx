@@ -1,10 +1,10 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { MusicNoteIcon } from '@phosphor-icons/react';
+import { MusicNoteIcon, StopIcon, TrashIcon } from '@phosphor-icons/react';
 import { Loader } from '@cloudflare/kumo';
 import { useAgent } from 'agents/react';
 import { useAgentChat } from '@cloudflare/ai-chat/react';
 import type { ToolUIPart, UIMessage } from 'ai';
-import { mockMessages } from '../mock-data';
+import { mockMessages } from './mock-data';
 
 function Message(message: UIMessage) {
 	if (message.role === "system") return (<></>);
@@ -36,7 +36,8 @@ function Message(message: UIMessage) {
 							<a href={link} key={link}>
 								<div className={"song-card"}>
 									<h1>{ title }</h1>
-									<p>{artists.join(", ")}</p>
+									<h4>{artists.join(", ")}</h4>
+									<p>Click to view on Spotify</p>
 								</div>
 							</a>
 						)
@@ -113,6 +114,11 @@ function Chat() {
 				<div
 					className="flex align-center items-center justify-center"
 					style={ { marginBottom: '20px' } }>
+					<div id={ 'clear-button' }>
+						<TrashIcon
+							style={ { height: '30px', width: '30px' } }
+							onClick={clearHistory}/>
+					</div>
 					<input
 						id={ 'prompt-input' }
 						value={ prompt }
@@ -129,6 +135,13 @@ function Chat() {
 							} }
 						/>
 					</div> : <></> }
+					{ isStreaming ? <div id = { 'stop-button' }>
+						<StopIcon
+							style={ { height: '30px', width: '30px' } }
+							onClick={ () => {
+								stop();
+							} }/>
+					</div> : <></>}
 				</div>
 			</form>
 		</div>

@@ -1,3 +1,5 @@
+import type { UIMessage } from 'ai';
+
 export const mockMessages: UIMessage[] = [
 	{
 		id: "1",

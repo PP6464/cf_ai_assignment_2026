@@ -29,8 +29,41 @@ body,
   color: black;
 }
 
+#stop-button {
+  margin-left: 10px;
+  height: 40px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  color: black;
+  background: indianred;
+}
+
+#stop-button:hover {
+  cursor: pointer;
+  background: #cd3a3aFF;
+}
+
+#clear-button {
+  margin-right: 10px;
+  height: 40px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: darkred;
+}
+
+#clear-button:hover {
+  cursor: pointer;
+  background: #690000FF;
+}
+
 #prompt-input {
-  width: 500px;
+  width: min(500px, 50vw);
   max-width: 95vw;
   padding: 20px;
   justify-self: flex-end;
@@ -54,7 +87,7 @@ body,
   background: var(--color-gray-800);
   padding: 10px;
   border-radius: 10px;
-  max-width: max(50%, 400px);
+  max-width: max(50%, 500px);
   margin-top: 5px;
   margin-bottom: 5px;
 }
@@ -64,7 +97,7 @@ body,
   background: hotpink;
   padding: 10px;
   border-radius: 10px;
-  max-width: max(50%, 400px);
+  max-width: max(50%, 500px);
   margin-top: 5px;
   margin-bottom: 5px;
 }
@@ -82,6 +115,12 @@ body,
   font-size: 18px;
 }
 
-.song-card p {
+.song-card h4 {
   font-size: 13px;
+}
+
+.song-card p {
+  margin-top: 5px;
+  font-size: 10px;
+  font-style: italic;
 }
