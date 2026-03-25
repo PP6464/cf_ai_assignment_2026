@@ -43,7 +43,7 @@ export class ChatAgent extends AIChatAgent<Env> {
           }),
           execute: async ({ desc, length, offset }) => {
             const songsResult = await fetch(
-              `https://api.deezer.com/search/track?q=${desc}&index=${offset}&limit=${length}`,
+              `https://api.deezer.com/search/track?q=${encodeURIComponent(desc)}&index=${encodeURIComponent(offset)}&limit=${encodeURIComponent(length)}`,
             );
 
             const songs = await songsResult.json();
