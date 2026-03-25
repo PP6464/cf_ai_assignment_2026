@@ -1,5 +1,6 @@
 interface SongInfo {
-	link: string,
-	title: string,
+	url: string,
+	name: string,
 	artists: string[],
+	explicit: boolean,
 }

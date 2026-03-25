@@ -4,10 +4,11 @@ import { Loader } from '@cloudflare/kumo';
 import { useAgent } from 'agents/react';
 import { useAgentChat } from '@cloudflare/ai-chat/react';
 import type { ToolUIPart, UIMessage } from 'ai';
-import { mockMessages } from './mock-data';
 
 function Message(message: UIMessage) {
 	if (message.role === "system") return (<></>);
+
+	console.log(JSON.stringify(message));
 
 	const isStreaming = message.parts.some((p) => {
 		if ("state" in p) {
@@ -18,11 +19,11 @@ function Message(message: UIMessage) {
 
 	const songs = message
 		.parts
-		.filter((e) => e.type === "tool-generatePlaylist")
+		.filter((e) => e.type === "tool-generatePlaylist" && e.output)
 		.flatMap((e) => (e as ToolUIPart).output as SongInfo);
 
 	return (
-		<div className={`message-${message.role}`}>
+		<div className={`message-${message.role}`} key={message.id}>
 			{ isStreaming ? <p>...</p> : <>
 				<p>{
 					message
@@ -32,12 +33,12 @@ function Message(message: UIMessage) {
 				}</p>
 				{
 					songs
-						.map(({ link, artists, title }) =>
-							<a href={link} key={link}>
+						.map(({ url, artists, name }) =>
+							<a href={url} key={url}>
 								<div className={"song-card"}>
-									<h1>{ title }</h1>
+									<h1>{ name }</h1>
 									<h4>{artists.join(", ")}</h4>
-									<p>Click to view on Spotify</p>
+									<p>Click to view online</p>
 								</div>
 							</a>
 						)
@@ -100,7 +101,7 @@ function Chat() {
 			className={ 'flex flex-col items-center justify-between h-lvh' }>
 			<div id={ 'chat-outer' }>
 				{
-					mockMessages.map((msg) => Message(msg))
+					messages.map((msg) => Message(msg))
 				}
 				<div ref={ messagesEndRef }></div>
 			</div>
@@ -109,6 +110,9 @@ function Chat() {
 				ref={ formRef }
 				onSubmit={ (e) => {
 					e.preventDefault();
+					sendMessage({
+						text: prompt
+					});
 					setPrompt('');
 				} }>
 				<div
