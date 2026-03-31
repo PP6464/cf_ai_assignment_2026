@@ -45,7 +45,7 @@ function Message(
 			{
 				message
 					.parts
-					.filter(e => e.type === 'tool-generatePlaylist' || (e.type === 'text' && (message.role === 'user' || validTextMessage(e.text))))
+					.filter(e => e.type === 'tool-generatePlaylist' || (e.type === 'text' && (message.role === 'user' || e.state === 'streaming' || validTextMessage(e.text))))
 					.map((part, index) => {
 						if (part.type === 'text' && part.state === 'streaming') return <p
 							className={ 'message-part' } key={ index }>...</p>;
