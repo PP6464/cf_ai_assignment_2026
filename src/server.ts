@@ -1,6 +1,6 @@
 import { createWorkersAI } from 'workers-ai-provider';
 import { routeAgentRequest } from 'agents';
-import { AIChatAgent } from '@cloudflare/ai-chat';
+import { AIChatAgent  } from '@cloudflare/ai-chat';
 import {
 	streamText,
 	convertToModelMessages,
@@ -25,23 +25,23 @@ async function getSongs(
 
 	return await Promise.all(
 		songs.data.map(async ({ id }) => {
-			const songRes = await fetch(
-				`https://api.deezer.com/track/${ id }`,
-			);
+				const songRes = await fetch(
+					`https://api.deezer.com/track/${ id }`,
+				);
 
-			const song = await songRes.json();
+				const song = await songRes.json();
 
-			return {
-				name: song.title,
-				url: song.link,
-				artists: song.contributors.map((c: any) => c.name),
-				explicit: song.explicit_lyrics,
-			};
-		},
-	));
+				return {
+					name: song.title,
+					url: song.link,
+					artists: song.contributors.map((c: any) => c.name),
+					explicit: song.explicit_lyrics,
+				};
+			},
+		));
 }
 
-export class ChatAgent extends AIChatAgent<Env> {
+export class ChatAgent extends AIChatAgent {
 	async onChatMessage(
 		onFinish: StreamTextOnFinishCallback<ToolSet>,
 		options?: { abortSignal?: AbortSignal },
@@ -50,7 +50,7 @@ export class ChatAgent extends AIChatAgent<Env> {
 
 		const result = streamText({
 			model: workersai('@cf/zai-org/glm-4.7-flash'),
-				system: `You are a helpful assistant that generates playlists.
+			system: `You are a helpful assistant that generates playlists.
 
 					Core Rules:
 					-	Tool Usage:
@@ -111,6 +111,7 @@ export class ChatAgent extends AIChatAgent<Env> {
 			messages: pruneMessages({
 				messages: await convertToModelMessages(this.messages),
 				toolCalls: 'before-last-2-messages',
+				emptyMessages: 'remove',
 			}),
 			tools: {
 				generatePlaylist: tool({
@@ -143,7 +144,7 @@ export class ChatAgent extends AIChatAgent<Env> {
 							`Whether explicit songs are allowed:
 													 - true => user allows explicit songs
 													 - false => user does NOT want explicit songs
-													 - null => unknown (will trigger approval UI)`
+													 - null => unknown (will trigger approval UI)`,
 						),
 					}),
 					needsApproval: ({ allowExplicit }) => allowExplicit === null,
@@ -176,11 +177,10 @@ export class ChatAgent extends AIChatAgent<Env> {
 }
 
 export default {
-	async fetch(request: Request, env: Env) {
-
+	async fetch(request: Request, env: Cloudflare.Env) {
 		return (
 			(await routeAgentRequest(request, env)) ||
 			new Response('Not found', { status: 404 })
 		);
 	},
-} satisfies ExportedHandler<Env>;
+} satisfies ExportedHandler<Cloudflare.Env>;

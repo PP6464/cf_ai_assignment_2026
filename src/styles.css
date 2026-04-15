@@ -64,8 +64,9 @@ body,
   background: #cd3a3aFF;
 }
 
-#clear-button {
+#clear-button, #logout-button {
   margin-right: 10px;
+  margin-left: 10px;
   height: 40px;
   width: 40px;
   display: flex;
@@ -75,7 +76,7 @@ body,
   background: darkred;
 }
 
-#clear-button:hover {
+#clear-button:hover, #logout-button:hover {
   cursor: pointer;
   background: #690000FF;
 }
@@ -187,4 +188,37 @@ body,
 .reject-button:hover {
   cursor: pointer;
   background: darkred;
+}
+
+#auth-form {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#auth-form input {
+  height: 30px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #222222FF;
+  width: min(75%, 300px);
+}
+
+#auth-form button {
+  padding: 5px 10px;
+  border-radius: 10px;
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-top: 5px;
+  background: #202020FF;
+}
+
+#auth-form button:hover {
+  cursor: pointer;
+  background: #101010FF;
 }

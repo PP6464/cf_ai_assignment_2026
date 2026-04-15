@@ -10,7 +10,3 @@ declare namespace Cloudflare {
 		ChatAgent: DurableObjectNamespace<import("./src/server").ChatAgent>;
 	}
 }
-interface Env extends Cloudflare.Env {
-    SPOTIFY_CLIENT_ID: any;
-    SPOTIFY_CLIENT_SECRET: any;
-}

@@ -1,14 +1,37 @@
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowsClockwiseIcon, MusicNoteIcon, StopIcon, TrashIcon } from '@phosphor-icons/react';
+import { type SubmitEventHandler, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowsClockwiseIcon, MusicNoteIcon, StopIcon, TrashIcon, SignOutIcon } from '@phosphor-icons/react';
 import { Loader } from '@cloudflare/kumo';
 import { useAgent } from 'agents/react';
 import { useAgentChat } from '@cloudflare/ai-chat/react';
 import type { ChatAddToolApproveResponseFunction, TextUIPart, UIMessage } from 'ai';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, type User } from 'firebase/auth';
+import { auth } from './firebase';
+import { BrowserRouter, Navigate, Routes, Route, useNavigate } from 'react-router-dom';
+
+function useAuth() {
+	const [user, setUser] = useState<User | null | undefined>(undefined);
+
+	useEffect(() => {
+		return auth.onAuthStateChanged((user) => {
+			setUser(user);
+		});
+	}, []);
+
+	return user;
+}
+
+async function signUp(email: string, password: string) {
+	return (await createUserWithEmailAndPassword(auth, email, password)).user;
+}
+
+async function login(email: string, password: string) {
+	return (await signInWithEmailAndPassword(auth, email, password)).user;
+}
 
 // This filters out AI responses' text parts that are clearly erroneous.
 function validTextMessage(message: string) {
-	if (message.length > 100) return false; // Should not be too long
-	if (/[\[\]{}\n]/.test(message)) return false; // All signs of listing/structured output
+	if (message.length > 100) return false;
+	if (/[\[\]{}\n]/.test(message)) return false;  // Indicators of listing/JSON output
 
 	const lower = message.toLowerCase();
 
@@ -16,7 +39,7 @@ function validTextMessage(message: string) {
 	const listingKeywords = ['song', 'artist', 'track'];
 
 	// Words that indicate the AI is explaining its reasoning
-	const reasoningWords = ['user', 'ask', 'retry', 'think', '='];
+	const reasoningWords = ['user', 'ask', 'retry', 'think', '=', 'generatePlaylist'];
 
 	if (listingKeywords.some(keyword => lower.includes(keyword))) return false;
 	return !reasoningWords.some(keyword => lower.includes(keyword));
@@ -102,14 +125,16 @@ function Message(
 	);
 }
 
-function Chat() {
+function Chat({ user }: { user: User }) {
 	const [prompt, setPrompt] = useState<string>('');
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const formRef = useRef<HTMLFormElement>(null);
 	const [connected, setConnected] = useState(false);
+	const navigate = useNavigate();
 
 	const agent = useAgent({
 		agent: 'ChatAgent',
+		name: user.uid,
 		onOpen: useCallback(() => setConnected(true), []),
 		onClose: useCallback(() => setConnected(false), []),
 		onError: useCallback(
@@ -125,23 +150,7 @@ function Chat() {
 		addToolApprovalResponse,
 		stop,
 		status,
-	} = useAgentChat({
-		agent,
-		onToolCall: async (event) => {
-			if (
-				'addToolOutput' in event &&
-				event.toolCall.toolName === 'getUserTimezone'
-			) {
-				event.addToolOutput({
-					toolCallId: event.toolCall.toolCallId,
-					output: {
-						timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-						localTime: new Date().toLocaleTimeString(),
-					},
-				});
-			}
-		},
-	});
+	} = useAgentChat({ agent });
 
 	const isStreaming = status === 'streaming' || status === 'submitted';
 
@@ -171,10 +180,14 @@ function Chat() {
 				<div
 					className="flex align-center items-center justify-center"
 					style={ { marginBottom: '20px' } }>
-					<div id={ 'clear-button' }>
-						<TrashIcon
+					<div id={ 'logout-button' }>
+						<SignOutIcon
 							style={ { height: '30px', width: '30px' } }
-							onClick={ clearHistory }/>
+							onClick={ async () => {
+								await auth.signOut();
+
+								navigate('/auth');
+							} }/>
 					</div>
 					<input
 						id={ 'prompt-input' }
@@ -200,10 +213,10 @@ function Chat() {
 								let lastPrompt = userMessages[userMessages.length - 1];
 								sendMessage({
 									text: (lastPrompt.parts[0] as TextUIPart).text,
-								})
+								});
 							} }
 						/>
-						</div> : <></> }
+					</div> : <></> }
 					{ isStreaming ? <div id={ 'stop-button' }>
 						<StopIcon
 							style={ { height: '30px', width: '30px' } }
@@ -211,16 +224,140 @@ function Chat() {
 								stop();
 							} }/>
 					</div> : <></> }
+					<div id={ 'clear-button' }>
+						<TrashIcon
+							style={ { height: '30px', width: '30px' } }
+							onClick={ clearHistory }/>
+					</div>
 				</div>
 			</form>
 		</div>
 	);
 }
 
+function ChatPage() {
+	const user = useAuth();
+
+	if (user === undefined) {
+		return <Loader/>;
+	}
+
+	if (user === null) {
+		return <Navigate to={ '/auth' } replace={ true }/>;
+	}
+
+	return <Chat user={ user }/>;
+}
+
+function AuthPage() {
+	const navigate = useNavigate();
+	const [email, setEmail] = useState('');
+	const [password, setPassword] = useState('');
+	const [mode, setMode] = useState('');
+	const [loading, setLoading] = useState(false);
+
+	const handleSubmit: SubmitEventHandler<HTMLFormElement> = async (e) => {
+		e.preventDefault();
+
+		if (loading) return;  // Already trying to login/sign up
+
+		if (!(/\w+@\w+\.\w+/.test(email))) {
+			alert('Please enter a valid email');
+			return;
+		}
+
+		if (password.length < 6) {
+			alert('Please enter a password of at least 6 characters');
+			return;
+		}
+
+		setLoading(true);
+
+		let accidentalSubmission = false;
+
+		try {
+			if (mode === 'login') {
+				await login(email, password);
+			} else if (mode === 'sign-up') {
+				await signUp(email, password);
+			} else {
+				accidentalSubmission = true;  // The user did not press one of the buttons so this must be accidental.
+				alert('Please use one of the buttons to indicate how you would like to login.');
+				return;
+			}
+
+			navigate('/chat');
+		} catch (err) {
+			if (mode === 'login') {
+				alert('Incorrect email/password entered');
+			}
+
+			if (mode === 'sign-up') {
+				alert('Email is already in use');
+			}
+		} finally {
+			if (!accidentalSubmission) {
+				// There was a genuine login attempt that either failed or succeeded, and not an accidental submission.
+				setEmail('');
+				setPassword('');
+			}
+			setMode('');
+			setLoading(false);
+		}
+	}
+
+	return (
+		<form
+			id={ 'auth-form' }
+			onSubmit={ handleSubmit }
+			onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}>
+			<input value={email} placeholder={ 'Email' } onChange={ (e) => setEmail(e.target.value) }/>
+			<input value={password} placeholder={ 'Password' } type={ 'password' } onChange={ (e) => setPassword(e.target.value) }/>
+			<div>
+				<button
+					type={ 'submit' }
+					onClick={(_) => { setMode('login') }}>
+					Login
+				</button>
+				<button
+					type={ 'submit' }
+					onClick={(_) => { setMode('sign-up') }}>
+					Sign Up
+				</button>
+			</div>
+			{
+				loading ? <div style={{ marginTop: '5px' }}><Loader/></div> : <></>
+			}
+		</form>
+	)
+}
+
+function SelectPage() {
+	const user = useAuth();
+
+	if (user === undefined) {
+		return <Loader/>;
+	}
+
+	if (user === null) {
+		return <Navigate to='/auth' replace={ true }/>;
+	}
+
+	return <Navigate to='/chat' replace={ true }/>;
+}
+
 export default function App() {
 	return (
-		<Suspense fallback={ <Loader/> }>
-			<Chat/>
-		</Suspense>
+		<BrowserRouter>
+			<Routes>
+				<Route path={ '/' } element={ <SelectPage/> } />
+				<Route path={ '/auth' } element={ <AuthPage/> }/>
+				<Route path={ '/chat' } element={
+					<Suspense fallback={ <Loader/> }>
+						<ChatPage/>
+					</Suspense>
+				}/>
+			</Routes>
+		</BrowserRouter>
 	);
 }
